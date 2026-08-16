@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Meal & Protein Calculator</title>
+<style>
+  :root{
+    --teal:#167C80;
+    --teal-light:#EAF5F5;
+    --ink:#263238;
+    --muted:#66777A;
+    --line:#D8E1E2;
+    --bg:#F7FAFA;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  .wrap{
+    width:min(100%,980px);
+    margin:0 auto;
+    padding:24px;
+  }
+  h1{
+    margin:0 0 6px;
+    color:var(--teal);
+    text-align:center;
+    font-size:30px;
+  }
+  .sub{
+    text-align:center;
+    color:var(--muted);
+    margin:0 0 24px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:18px;
+  }
+  .card{
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px;
+    box-shadow:0 2px 8px rgba(0,0,0,.04);
+  }
+  .metric .label{
+    color:var(--muted);
+    font-size:13px;
+    margin-bottom:4px;
+  }
+  .metric .value{
+    font-size:28px;
+    font-weight:700;
+    color:var(--teal);
+    line-height:1.15;
+  }
+  .metric .target{
+    color:var(--muted);
+    font-size:12px;
+    margin-top:4px;
+  }
+  .section{
+    margin:16px 0;
+  }
+  .section h2{
+    margin:0 0 12px;
+    font-size:18px;
+    color:var(--teal);
+  }
+  label.block{
+    display:block;
+    margin:12px 0;
+    font-weight:700;
+  }
+  select{
+    width:100%;
+    margin-top:6px;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:white;
+    font-size:15px;
+    color:var(--ink);
+  }
+  .check{
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    margin:10px 0;
+    font-size:15px;
+  }
+  input[type=checkbox]{
+    width:18px;
+    height:18px;
+    accent-color:var(--teal);
+    margin-top:1px;
+  }
+  .twocol{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+  }
+  .callout{
+    background:var(--teal-light);
+    border:1px solid #BFDCDC;
+    border-radius:14px;
+    padding:16px;
+    margin-top:18px;
+  }
+  .callout strong{color:var(--teal)}
+  .buttons{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  button{
+    border:1px solid var(--line);
+    background:white;
+    color:var(--ink);
+    border-radius:10px;
+    padding:10px 16px;
+    font-size:15px;
+    cursor:pointer;
+  }
+  button.primary{
+    background:var(--teal);
+    color:white;
+    border-color:var(--teal);
+  }
+  .note{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.45;
+    margin-top:14px;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr 1fr}
+    .twocol{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Daily Meal & Protein Calculator</h1>
+  <p class="sub">Choose your meals for the day and see your running calories and protein.</p>
+
+  <div class="grid" aria-live="polite">
+    <div class="card metric">
+      <div class="label">Calories</div>
+      <div id="calTotal" class="value">0</div>
+      <div class="target">Target 1,600–1,700 kcal</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Protein</div>
+      <div id="proteinTotal" class="value">0 g</div>
+      <div class="target">Target 120–130 g</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Calorie status</div>
+      <div id="calStatus"><strong>Choose meals</strong></div>
+    </div>
+    <div class="card metric">
+      <div class="label">Protein status</div>
+      <div id="proteinStatus"><strong>Choose meals</strong></div>
+    </div>
+  </div>
+
+  <div class="card section">
+    <h2>Main meals</h2>
+    <label class="block">Breakfast
+      <select id="breakfast"></select>
+    </label>
+    <label class="block">Lunch
+      <select id="lunch"></select>
+    </label>
+    <label class="block">Dinner
+      <select id="dinner"></select>
+    </label>
+  </div>
+
+  <div class="card section">
+    <h2>Optional protein top-ups</h2>
+    <label class="check">
+      <input id="proteinWater" type="checkbox">
+      <span>Bulk Nutrients Protein Water — 67 kcal / 15.3 g protein (optional)</span>
+    </label>
+    <div id="proteinExtras"></div>
+  </div>
+
+  <div class="twocol">
+    <div class="card section">
+      <h2>Fruit</h2>
+      <label class="block">Optional
+        <select id="fruit"></select>
+      </label>
+    </div>
+
+    <div class="card section">
+      <h2>After-dinner treat</h2>
+      <label class="block">Choose one
+        <select id="treat"></select>
+      </label>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Your day</strong>
+    <div id="summary" style="margin-top:8px;">Choose your meals to build the day.</div>
+  </div>
+
+  <div class="buttons">
+    <button id="reset" type="button">Reset</button>
+    <button id="saveDay" type="button" class="primary">Save today's choices</button>
+    <button id="loadDay" type="button">Load saved choices</button>
+  </div>
+
+  <p class="note">
+    Butcher-cut meats and natural foods use planning estimates and may vary. Your selections can be saved in your browser on this device using the “Save today's choices” button.
+  </p>
+</div>
+
+<script>
+const data = {
+  breakfast: [
+    ['None',0,0,0,0],
+    ['High-Protein Yoghurt Bowl',380,390,36,37],
+    ['Cottage Cheese & Honey Toast',388,388,25.6,25.6],
+    ['Cottage Cheese Scrambled Eggs on Toast',450,450,36,38],
+    ['Ham, Cheese & Egg Toastie',500,500,39,40]
+  ],
+  lunch: [
+    ['None',0,0,0,0],
+    ['Cottage Cheese & Cruskits',305,305,32,32],
+    ['Ham, Cheese & Tomato Toastie',390,390,24,24],
+    ['Tuna, Cheese & Salad Wrap',400,400,30,30],
+    ['Egg & Lettuce Sandwich',445,445,28,28],
+    ['Chicken Thigh Salad Wrap',580,580,43,43]
+  ],
+  dinner: [
+    ['None',0,0,0,0],
+    ['Crumbed Whiting & Vegetables',380,380,21,21],
+    ['Chicken Thigh + Lamb Loin & Vegetables',500,580,40,45],
+    ['2 Lamb Loin Chops & Vegetables',520,580,40,45],
+    ['Chicken Thigh + Lamb Chump & Vegetables',520,600,40,45],
+    ['Chicken Tacos',550,550,55,55],
+    ['Homemade Cheeseburger',550,550,41,43],
+    ['Chicken Schnitzel & Vegetables',550,550,40,40],
+    ['2 Lamb Chump Chops & Vegetables',550,620,40,45],
+    ['Porterhouse 250 g + Vegetables',560,560,55,55],
+    ['Beef Tacos',570,600,42,45],
+    ['2 Boneless Skin-On Chicken Thighs & Vegetables',550,650,40,50],
+    ['2 Lamb Forequarter Chops & Vegetables',600,700,40,50],
+    ['Porterhouse 300 g + Vegetables',650,650,65,65],
+    ['Beef Bolognese with Shell Pasta',670,670,48,48],
+    ['Porterhouse 350 g + Vegetables',740,740,75,75],
+    ['Scotch Fillet 250 g + Vegetables',650,650,52,52],
+    ['Scotch Fillet 300 g + Vegetables',755,755,62,62],
+    ['Scotch Fillet 350 g + Vegetables',860,860,72,72]
+  ],
+  fruit: [
+    ['None',0,0,0,0],
+    ['Kiwi fruit — 1',45,45,0,0],
+    ['Strawberries — 250 g',80,80,0,0],
+    ['Watermelon — 250 g',80,80,0,0],
+    ['Mandarins — 2',80,80,0,0],
+    ['Orange — 1 medium',85,85,0,0],
+    ['Pineapple — 150 g',85,85,0,0],
+    ['Kiwi fruit — 2',90,90,0,0],
+    ['Apple — 1 medium',95,95,0,0],
+    ['Blueberries — 125 g',95,95,0,0],
+    ['Grapes — 150 g',105,105,0,0],
+    ['Banana — 1 medium',105,105,0,0]
+  ],
+  treat: [
+    ['None',0,0,0,0],
+    ['Paddle Pop Chocolate',82,82,0,0],
+    ['Paddle Pop Rainbow',91,91,0,0],
+    ["Parker's Mini Pretzels — 25 g",101,101,2.8,2.8],
+    ['Mini Oreos — 1 pack',101,101,0,0],
+    ['Tiny Teddies — 1 individual 25 g pack',109,109,1.6,1.6],
+    ['BBQ Shapes — 25 g',127,127,1.9,1.9],
+    ['Caramello Koala',175,175,2,2],
+    ['Cadbury Freddo',188,188,2.6,2.6],
+    ["Fry's Turkish Delight",189,189,0,0],
+    ['Drumstick Caramel Swirl',223,223,2.7,2.7],
+    ['Cadbury Caramello Bar',230,230,2.7,2.7],
+    ['KitKat Chunky',240,240,3,3],
+    ['Marvellous Creations',258,258,3.3,3.3],
+    ['Cadbury Dairy Milk',268,268,3.8,3.8]
+  ],
+  extras: [
+    ['High-Protein Yoghurt Pouch',95,95,15,15],
+    ['Bulk Nutrients ThermoWhey + water',110,110,25.2,25.2],
+    ['Pauls PLUS+ Protein Dairy Snack',128,128,16,16],
+    ['Rokeby Protein Snack',147,147,15,15]
+  ]
+};
+
+function label(item) {
+  const [name,c1,c2,p1,p2] = item;
+  const cal = c1===c2 ? `${c1} kcal` : `${c1}–${c2} kcal`;
+  const pro = p1===p2 ? `${p1} g P` : `${p1}–${p2} g P`;
+  return `${name} — ${cal} / ${pro}`;
+}
+
+function fillSelect(id, items) {
+  const el = document.getElementById(id);
+  items.forEach((item,i) => {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = label(item);
+    el.appendChild(o);
+  });
+}
+
+fillSelect('breakfast',data.breakfast);
+fillSelect('lunch',data.lunch);
+fillSelect('dinner',data.dinner);
+fillSelect('fruit',data.fruit);
+fillSelect('treat',data.treat);
+
+const extrasBox = document.getElementById('proteinExtras');
+data.extras.forEach((item,i) => {
+  const row = document.createElement('label');
+  row.className = 'check';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.className = 'extra';
+  input.dataset.index = i;
+  input.id = `extra-${i}`;
+  const span = document.createElement('span');
+  span.textContent = label(item);
+  row.append(input,span);
+  extrasBox.appendChild(row);
+});
+
+function add(total,item){
+  total.c1 += item[1]; total.c2 += item[2];
+  total.p1 += item[3]; total.p2 += item[4];
+}
+function round(n){ return Number.isInteger(n) ? n : Math.round(n*10)/10; }
+function fmt(min,max,unit){ return min===max ? `${round(min)}${unit}` : `${round(min)}–${round(max)}${unit}`; }
+
+function update(){
+  const t={c1:0,c2:0,p1:0,p2:0};
+  const chosen=[];
+
+  ['breakfast','lunch','dinner','fruit','treat'].forEach(cat=>{
+    const el=document.getElementById(cat);
+    const item=data[cat][Number(el.value)];
+    add(t,item);
+    if(item[0] !== 'None') chosen.push(item[0]);
+  });
+
+  if(document.getElementById('proteinWater').checked){
+    add(t,['Protein Water',67,67,15.3,15.3]);
+    chosen.push('Daily protein water');
+  }
+
+  document.querySelectorAll('.extra:checked').forEach(el=>{
+    const item=data.extras[Number(el.dataset.index)];
+    add(t,item);
+    chosen.push(item[0]);
+  });
+
+  document.getElementById('calTotal').textContent=fmt(t.c1,t.c2,' kcal');
+  document.getElementById('proteinTotal').textContent=fmt(t.p1,t.p2,' g');
+
+  const calStatus=document.getElementById('calStatus');
+  if(t.c2===0) calStatus.innerHTML='<strong>Choose meals</strong>';
+  else if(t.c2<1600) calStatus.innerHTML=`<strong>Below target</strong><br>About ${Math.max(0,1600-t.c2)} kcal short`;
+  else if(t.c1>1700) calStatus.innerHTML=`<strong>Above target</strong><br>About ${Math.max(0,t.c1-1700)} kcal over`;
+  else calStatus.innerHTML='<strong>Within / overlaps target</strong>';
+
+  const proStatus=document.getElementById('proteinStatus');
+  if(t.p2===0) proStatus.innerHTML='<strong>Choose meals</strong>';
+  else if(t.p2<120) proStatus.innerHTML=`<strong>Protein low</strong><br>Need about ${round(120-t.p2)} g more`;
+  else if(t.p1>130) proStatus.innerHTML='<strong>Above 130 g</strong><br>Still okay';
+  else proStatus.innerHTML='<strong>Target reached / overlaps target</strong>';
+
+  document.getElementById('summary').textContent = chosen.length ? chosen.join(' • ') : 'Choose your meals to build the day.';
+}
+
+document.querySelectorAll('select,input').forEach(el=>el.addEventListener('change',update));
+
+document.getElementById('reset').addEventListener('click',()=>{
+  ['breakfast','lunch','dinner','fruit','treat'].forEach(id=>document.getElementById(id).value='0');
+  document.getElementById('proteinWater').checked=false;
+  document.querySelectorAll('.extra').forEach(x=>x.checked=false);
+  update();
+});
+
+document.getElementById('saveDay').addEventListener('click',()=>{
+  const state = {
+    breakfast: document.getElementById('breakfast').value,
+    lunch: document.getElementById('lunch').value,
+    dinner: document.getElementById('dinner').value,
+    fruit: document.getElementById('fruit').value,
+    treat: document.getElementById('treat').value,
+    proteinWater: document.getElementById('proteinWater').checked,
+    extras: [...document.querySelectorAll('.extra')].map(x=>x.checked)
+  };
+  localStorage.setItem('mealCalculatorSavedDay', JSON.stringify(state));
+  alert('Saved on this device.');
+});
+
+document.getElementById('loadDay').addEventListener('click',()=>{
+  const raw = localStorage.getItem('mealCalculatorSavedDay');
+  if(!raw){ alert('No saved choices found on this device yet.'); return; }
+  const state = JSON.parse(raw);
+  document.getElementById('breakfast').value=state.breakfast ?? '0';
+  document.getElementById('lunch').value=state.lunch ?? '0';
+  document.getElementById('dinner').value=state.dinner ?? '0';
+  document.getElementById('fruit').value=state.fruit ?? '0';
+  document.getElementById('treat').value=state.treat ?? '0';
+  document.getElementById('proteinWater').checked=state.proteinWater ?? false;
+  [...document.querySelectorAll('.extra')].forEach((x,i)=>x.checked=Boolean(state.extras?.[i]));
+  update();
+});
+
+update();
+</script>
+</body>
+</html>
