@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Meal Planner</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Weekly Meal Planner">
+<meta name="theme-color" content="#167C80">
+<style>
+:root{
+  --teal:#167C80; --teal-light:#EAF5F5; --ink:#263238; --muted:#66777A;
+  --line:#D8E1E2; --bg:#F7FAFA; --white:#FFFFFF;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{width:min(100%,1180px);margin:0 auto;padding:24px}
+h1{margin:0 0 6px;color:var(--teal);text-align:center;font-size:30px}
+.sub{text-align:center;color:var(--muted);margin:0 0 18px}
+.topbar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.metric .label{color:var(--muted);font-size:13px;margin-bottom:4px}
+.metric .value{font-size:25px;font-weight:700;color:var(--teal);line-height:1.15}
+.metric .target{color:var(--muted);font-size:12px;margin-top:4px}
+.week{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.day h2{margin:0 0 10px;color:var(--teal);font-size:20px}
+.row{display:grid;grid-template-columns:145px 1fr;gap:10px;align-items:center;margin:8px 0}
+.row label{font-weight:700;font-size:14px}
+select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;background:white;color:var(--ink);font-size:14px}
+.coffee{display:flex;align-items:center;gap:8px;margin:6px 0 10px;font-size:14px}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal)}
+.daytotals{background:var(--teal-light);border:1px solid #BFDCDC;border-radius:10px;padding:10px 12px;margin-top:12px;font-weight:700;line-height:1.5}
+.buttons{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+button{border:1px solid var(--line);background:white;color:var(--ink);border-radius:10px;padding:11px 16px;font-size:15px;cursor:pointer}
+button.primary{background:var(--teal);color:white;border-color:var(--teal)}
+.note{color:var(--muted);font-size:12px;line-height:1.45}
+#printArea{display:none}
+@media(max-width:850px){
+  .wrap{padding:14px 12px 28px}
+  .coffee{margin-left:0!important}
+  .topbar{grid-template-columns:1fr 1fr}
+  .week{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr;gap:4px}
+  select{min-height:48px;font-size:16px}
+  button{min-height:48px;font-size:16px;flex:1 1 45%}
+}
+@media print{
+  @page{size:A4 portrait;margin:6mm}
+  body{background:white}
+  .wrap > *{display:none!important}
+  #printArea{display:block!important}
+  #printArea h1{
+    font-size:22pt;
+    margin:0 0 2mm;
+    color:#000;
+    line-height:1.05;
+  }
+  #printArea .printsub{
+    font-size:10pt;
+    text-align:center;
+    margin-bottom:3mm;
+    color:#333;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    table-layout:fixed;
+    font-size:9.6pt;
+  }
+  th,td{
+    border:1px solid #777;
+    padding:6px 5px;
+    vertical-align:top;
+    word-wrap:break-word;
+    line-height:1.25;
+  }
+  th{
+    font-weight:700;
+    background:#eee;
+    font-size:9.8pt;
+  }
+  tbody tr{
+    height:30mm;
+  }
+  th:nth-child(1), td:nth-child(1){width:6%}
+  th:nth-child(2), td:nth-child(2){width:16%}
+  th:nth-child(3), td:nth-child(3){width:14%}
+  th:nth-child(4), td:nth-child(4){width:16%}
+  th:nth-child(5), td:nth-child(5){width:14%}
+  th:nth-child(6), td:nth-child(6){width:8%}
+  th:nth-child(7), td:nth-child(7){width:7%}
+  th:nth-child(8), td:nth-child(8){width:7%}
+  th:nth-child(9), td:nth-child(9){width:12%}
+  .printsummary{
+    margin-top:2mm;
+    font-size:9.5pt;
+    font-weight:700;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Weekly Meal Planner</h1>
+  <p class="sub">Plan Monday to Sunday, see each day's totals, then print a clean one-page weekly plan.</p>
+
+  <div class="topbar">
+    <div class="card metric">
+      <div class="label">Weekly average calories</div>
+      <div id="avgCal" class="value">0 kcal</div>
+      <div class="target">Daily target 1,600–1,700 kcal</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Weekly average protein</div>
+      <div id="avgPro" class="value">0 g</div>
+      <div class="target">Daily target 120–130 g</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Weekly average fibre</div>
+      <div id="avgFib" class="value">0 g</div>
+      <div class="target">Daily target 25+ g</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Days planned</div>
+      <div id="daysPlanned" class="value">0 / 7</div>
+      <div class="target">Coffee is on by default</div>
+    </div>
+  </div>
+
+  <div id="week" class="week"></div>
+
+  <div class="buttons">
+    <button id="resetWeek" type="button">Reset week</button>
+    <button id="saveWeek" type="button">Save week</button>
+    <button id="loadWeek" type="button">Load saved week</button>
+    <button id="printWeek" class="primary" type="button">Print Weekly Plan</button>
+  </div>
+
+  <p class="note">Calories, protein and fibre are planning estimates. Weekly choices are automatically remembered on this device as you change them.</p>
+
+  <div id="printArea">
+    <h1>Weekly Meal Plan</h1>
+    <div class="printsub">Calories • Protein • Fibre</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Breakfast</th>
+          <th>Lunch</th>
+          <th>Dinner</th>
+          <th>Protein top-ups</th>
+          <th>Fruit</th>
+          <th>Treat 1</th>
+          <th>Treat 2</th>
+          <th>Daily totals</th>
+        </tr>
+      </thead>
+      <tbody id="printBody"></tbody>
+    </table>
+    <div id="printSummary" class="printsummary"></div>
+  </div>
+</div>
+
+<script>
+// [name, calories min, calories max, protein min, protein max, fibre min, fibre max]
+const data = {
+  breakfast: [
+    ['None',0,0,0,0,0,0],
+    ['High-Protein Yoghurt Bowl',380,390,36,37,5,6],
+    ['Cottage Cheese & Honey Toast',388,388,25.6,25.6,5,5],
+    ['Cottage Cheese Scrambled Eggs on Toast',450,450,36,38,5,5],
+    ['Ham, Cheese & Egg Toastie',500,500,39,40,5,5]
+  ],
+  lunch: [
+    ['None',0,0,0,0,0,0],
+    ['Tuna, Cheese & Cruskits',300,330,27,30,2,3],
+    ['Ham, Cheese, Tomato & Baby Spinach Corn Thins',300,310,21,22,2,3],
+    ['Cottage Cheese & Cruskits',305,305,32,32,3,3],
+    ['Ham, Cheese & Tomato Toastie',390,390,24,24,5,5],
+    ['Ham & Salad Wrap',390,420,25,28,5,6],
+    ['Tuna, Cheese & Salad Wrap',400,400,30,30,5,6],
+    ['Egg & Lettuce Sandwich',445,445,28,28,5,5],
+    ['Roast Chicken & Cheese Toasted Sanga',515,515,44,44,5,5],
+    ['Chicken Thigh Salad Wrap',580,580,43,43,5,6]
+  ],
+  dinner: [
+    ['None',0,0,0,0,0,0],
+    ['Crumbed Whiting & Vegetables',380,380,21,21,5,5],
+    ['Chicken Thigh + Lamb Loin & Vegetables',500,580,40,45,5,5],
+    ['2 Lamb Loin Chops & Vegetables',520,580,40,45,5,5],
+    ['Chicken Thigh + Lamb Chump & Vegetables',520,600,40,45,5,5],
+    ['Chicken Tacos',550,550,55,55,6,7],
+    ['Homemade Cheeseburger',550,550,41,43,4,5],
+    ['Chicken Schnitzel & Vegetables',550,550,40,40,5,5],
+    ['2 Lamb Chump Chops & Vegetables',550,620,40,45,5,5],
+    ['Porterhouse 250 g + Vegetables',560,560,55,55,5,5],
+    ['Beef Tacos',570,600,42,45,6,7],
+    ['2 Boneless Skin-On Chicken Thighs & Vegetables',550,650,40,50,5,5],
+    ['2 Lamb Forequarter Chops & Vegetables',600,700,40,50,5,5],
+    ['Roast Lamb 250 g + Vegetables + Tomato Sauce',590,640,65,70,5,5],
+    ['Porterhouse 300 g + Vegetables',650,650,65,65,5,5],
+    ['Scotch Fillet 250 g + Vegetables',650,650,52,52,5,5],
+    ['Beef Bolognese with Shell Pasta',670,670,48,48,6,7],
+    ['Roast Lamb 300 g + Vegetables + Tomato Sauce',690,750,78,84,5,5],
+    ['Porterhouse 350 g + Vegetables',740,740,75,75,5,5],
+    ['Scotch Fillet 300 g + Vegetables',755,755,62,62,5,5],
+    ['Roast Lamb 350 g + Vegetables + Tomato Sauce',790,860,91,98,5,5],
+    ['Scotch Fillet 350 g + Vegetables',860,860,72,72,5,5]
+  ],
+  fruit: [
+    ['None',0,0,0,0,0,0],
+    ['Kiwi fruit — 1',45,45,0,0,2.1,2.1],
+    ['Strawberries — 250 g',80,80,0,0,5,5],
+    ['Watermelon — 250 g',80,80,0,0,1,1],
+    ['Mandarins — 2',80,80,0,0,3.2,3.2],
+    ['Orange — 1 medium',85,85,0,0,3.1,3.1],
+    ['Pineapple — 150 g',85,85,0,0,2.1,2.1],
+    ['Kiwi fruit — 2',90,90,0,0,4.2,4.2],
+    ['Apple — 1 medium',95,95,0,0,4.4,4.4],
+    ['Blueberries — 125 g',95,95,0,0,3,3],
+    ['Grapes — 150 g',105,105,0,0,1.4,1.4],
+    ['Banana — 1 medium',105,105,0,0,3.1,3.1]
+  ],
+  treat: [
+    ['None',0,0,0,0,0,0],
+    ['Paddle Pop Chocolate',82,82,0,0,0,0],
+    ['Paddle Pop Rainbow',91,91,0,0,0,0],
+    ["Parker's Mini Pretzels — 25 g",101,101,2.8,2.8,0.8,0.8],
+    ['Mini Oreos — 1 pack',101,101,0,0,0.7,0.7],
+    ['Tiny Teddies — 1 individual 25 g pack',109,109,1.6,1.6,1.2,1.2],
+    ['BBQ Shapes — 25 g',127,127,1.9,1.9,0.2,0.2],
+    ['Caramello Koala',175,175,2,2,0.5,0.5],
+    ['Cadbury Freddo',188,188,2.6,2.6,0.5,0.5],
+    ["Fry's Turkish Delight",189,189,0,0,0,0],
+    ['Drumstick Caramel Swirl',223,223,2.7,2.7,1,1],
+    ['Cadbury Caramello Bar',230,230,2.7,2.7,0.5,0.5],
+    ['KitKat Chunky',240,240,3,3,1,1],
+    ['Marvellous Creations',258,258,3.3,3.3,0.8,0.8],
+    ['Cadbury Dairy Milk',268,268,3.8,3.8,0.5,0.5]
+  ],
+  topup: [
+    ['None',0,0,0,0,0,0],
+    ['Bulk Nutrients Protein Water',67,67,15.3,15.3,0,0],
+    ['High-Protein Yoghurt Pouch',95,95,15,15,0,0],
+    ['Bulk Nutrients ThermoWhey + water',110,110,25.2,25.2,0,0],
+    ['Pauls PLUS+ Protein Dairy Snack',128,128,16,16,0,0],
+    ['Rokeby Protein Snack',147,147,15,15,1.6,1.6],
+    ['Wicked Sister High Protein Pudding — Banana / Caramel / Chocolate',151,169,15.3,15.6,0,0]
+  ]
+};
+
+const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const coffeeItem=['Everyday coffee',90,90,9,9,0,0];
+
+function round(n){return Number.isInteger(n)?n:Math.round(n*10)/10}
+function fmt(min,max,unit){return min===max?`${round(min)}${unit}`:`${round(min)}–${round(max)}${unit}`}
+function shortLabel(item){
+  if(item[0]==='None') return 'None';
+  return `${item[0]} — ${fmt(item[1],item[2],' kcal')} / ${fmt(item[3],item[4],' g P')}`;
+}
+function add(t,item){
+  t.c1+=item[1];t.c2+=item[2];t.p1+=item[3];t.p2+=item[4];t.f1+=item[5];t.f2+=item[6];
+}
+function makeSelect(cat,id){
+  const s=document.createElement('select');s.id=id;s.dataset.cat=cat;
+  data[cat].forEach((item,i)=>{
+    const o=document.createElement('option');o.value=i;o.textContent=shortLabel(item);s.appendChild(o);
+  });
+  return s;
+}
+
+const week=document.getElementById('week');
+days.forEach((day,di)=>{
+  const card=document.createElement('div');card.className='card day';card.dataset.day=di;
+  const h=document.createElement('h2');h.textContent=day;card.appendChild(h);
+
+  const rows=[
+    ['Breakfast','breakfast','breakfast'],
+    ['Lunch','lunch','lunch'],
+    ['Dinner','dinner','dinner'],
+    ['Protein top-up 1','topup','topup1'],
+    ['Protein top-up 2','topup','topup2'],
+    ['Fruit','fruit','fruit'],
+    ['After-dinner treat 1','treat','treat1'],
+    ['After-dinner treat 2','treat','treat2']
+  ];
+
+  rows.forEach(([label,cat,key])=>{
+    const r=document.createElement('div');r.className='row';
+    const l=document.createElement('label');l.textContent=label;
+    const s=makeSelect(cat,`d${di}-${key}`);
+    r.append(l,s);card.appendChild(r);
+
+    if(key==='breakfast'){
+      const coffee=document.createElement('label');
+      coffee.className='coffee';
+      coffee.style.marginLeft='155px';
+      coffee.innerHTML=`<input type="checkbox" id="d${di}-coffee" checked> Everyday coffee`;
+      card.appendChild(coffee);
+    }
+  });
+
+  const totals=document.createElement('div');
+  totals.className='daytotals';
+  totals.id=`d${di}-totals`;
+  totals.textContent='0 kcal • 0 g protein • 0 g fibre';
+  card.appendChild(totals);
+  week.appendChild(card);
+});
+
+function dayState(di){
+  return {
+    coffee:document.getElementById(`d${di}-coffee`).checked,
+    breakfast:document.getElementById(`d${di}-breakfast`).value,
+    lunch:document.getElementById(`d${di}-lunch`).value,
+    dinner:document.getElementById(`d${di}-dinner`).value,
+    topup1:document.getElementById(`d${di}-topup1`).value,
+    topup2:document.getElementById(`d${di}-topup2`).value,
+    fruit:document.getElementById(`d${di}-fruit`).value,
+    treat1:document.getElementById(`d${di}-treat1`).value,
+    treat2:document.getElementById(`d${di}-treat2`).value
+  };
+}
+
+function calcDay(di){
+  const s=dayState(di),t={c1:0,c2:0,p1:0,p2:0,f1:0,f2:0};
+  if(s.coffee)add(t,coffeeItem);
+  add(t,data.breakfast[+s.breakfast]);
+  add(t,data.lunch[+s.lunch]);
+  add(t,data.dinner[+s.dinner]);
+  add(t,data.topup[+s.topup1]);
+  add(t,data.topup[+s.topup2]);
+  add(t,data.fruit[+s.fruit]);
+  add(t,data.treat[+s.treat1]);
+  add(t,data.treat[+s.treat2]);
+  const planned = (+s.breakfast + +s.lunch + +s.dinner)>0;
+  return {t,s,planned};
+}
+
+function itemName(cat,val){return data[cat][+val][0]}
+
+function renderPrint(){
+  const body=document.getElementById('printBody');body.innerHTML='';
+  let C1=0,C2=0,P1=0,P2=0,F1=0,F2=0,planned=0;
+  days.forEach((day,di)=>{
+    const {t,s,planned:p}=calcDay(di);
+    const printDay=day.slice(0,3);
+    if(p)planned++;
+    C1+=t.c1;C2+=t.c2;P1+=t.p1;P2+=t.p2;F1+=t.f1;F2+=t.f2;
+
+    const tops=[itemName('topup',s.topup1),itemName('topup',s.topup2)].filter(x=>x!=='None');
+    const breakfastParts=[];
+    if(s.coffee) breakfastParts.push('Everyday coffee');
+    const breakfastName=itemName('breakfast',s.breakfast);
+    if(breakfastName!=='None') breakfastParts.push(breakfastName);
+
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><strong>${printDay}</strong></td>
+      <td>${breakfastParts.length?breakfastParts.join('<br>'):'—'}</td>
+      <td>${itemName('lunch',s.lunch)}</td>
+      <td>${itemName('dinner',s.dinner)}</td>
+      <td>${tops.length?tops.join('<br>'):'—'}</td>
+      <td>${itemName('fruit',s.fruit)==='None'?'—':itemName('fruit',s.fruit)}</td>
+      <td>${itemName('treat',s.treat1)==='None'?'—':itemName('treat',s.treat1)}</td>
+      <td>${itemName('treat',s.treat2)==='None'?'—':itemName('treat',s.treat2)}</td>
+      <td>${fmt(t.c1,t.c2,' kcal')}<br>${fmt(t.p1,t.p2,' g P')}<br>${fmt(t.f1,t.f2,' g fibre')}</td>`;
+    body.appendChild(tr);
+  });
+
+  const div=Math.max(planned,1);
+  document.getElementById('printSummary').textContent =
+    planned
+      ? `Average across ${planned} planned day${planned===1?'':'s'}: ${fmt(C1/div,C2/div,' kcal')} • ${fmt(P1/div,P2/div,' g protein')} • ${fmt(F1/div,F2/div,' g fibre')}`
+      : 'No days planned yet.';
+}
+
+function update(){
+  let C1=0,C2=0,P1=0,P2=0,F1=0,F2=0,planned=0;
+
+  days.forEach((day,di)=>{
+    const {t,planned:p}=calcDay(di);
+    if(p)planned++;
+    C1+=t.c1;C2+=t.c2;P1+=t.p1;P2+=t.p2;F1+=t.f1;F2+=t.f2;
+
+    document.getElementById(`d${di}-totals`).textContent=
+      `${fmt(t.c1,t.c2,' kcal')} • ${fmt(t.p1,t.p2,' g protein')} • ${fmt(t.f1,t.f2,' g fibre')}`;
+  });
+
+  const div=Math.max(planned,1);
+  document.getElementById('avgCal').textContent=planned?fmt(C1/div,C2/div,' kcal'):'0 kcal';
+  document.getElementById('avgPro').textContent=planned?fmt(P1/div,P2/div,' g'):'0 g';
+  document.getElementById('avgFib').textContent=planned?fmt(F1/div,F2/div,' g'):'0 g';
+  document.getElementById('daysPlanned').textContent=`${planned} / 7`;
+
+  renderPrint();
+
+  try{
+    localStorage.setItem('weeklyMealPlannerAutoV2',JSON.stringify(days.map((_,i)=>dayState(i))));
+  }catch(e){}
+}
+
+document.querySelectorAll('select,input').forEach(el=>el.addEventListener('change',update));
+
+function applyState(arr){
+  if(!Array.isArray(arr))return;
+  arr.forEach((s,di)=>{
+    if(!s || di>6)return;
+    document.getElementById(`d${di}-coffee`).checked=s.coffee ?? true;
+    ['breakfast','lunch','dinner','topup1','topup2','fruit','treat1','treat2'].forEach(k=>{
+      const el=document.getElementById(`d${di}-${k}`);
+      if(el)el.value=s[k] ?? '0';
+    });
+  });
+  update();
+}
+
+document.getElementById('resetWeek').addEventListener('click',()=>{
+  days.forEach((_,di)=>{
+    document.getElementById(`d${di}-coffee`).checked=true;
+    ['breakfast','lunch','dinner','topup1','topup2','fruit','treat1','treat2']
+      .forEach(k=>document.getElementById(`d${di}-${k}`).value='0');
+  });
+  update();
+});
+
+document.getElementById('saveWeek').addEventListener('click',()=>{
+  localStorage.setItem('weeklyMealPlannerSavedV2',JSON.stringify(days.map((_,i)=>dayState(i))));
+  alert('Weekly plan saved on this device.');
+});
+
+document.getElementById('loadWeek').addEventListener('click',()=>{
+  const raw=localStorage.getItem('weeklyMealPlannerSavedV2');
+  if(!raw){alert('No saved weekly plan found on this device yet.');return;}
+  applyState(JSON.parse(raw));
+});
+
+document.getElementById('printWeek').addEventListener('click',()=>{
+  renderPrint();
+  window.print();
+});
+
+try{
+  const raw=localStorage.getItem('weeklyMealPlannerAutoV2');
+  if(raw)applyState(JSON.parse(raw));
+}catch(e){}
+
+update();
+</script>
+</body>
+</html>
